@@ -1,56 +1,64 @@
-import random
+#using flask 
+#Flask - core component, request - for http request, render_template- rendering html template 
+from flask import Flask, request, render_template
+import pandas as p
+from gtts import gTTS #google text to speech
+import os 
+import webbrowser
 
-def simple_cbot(input_text):
-    greetings = ["hello", "hi", "hey", "good morning"]
-    endings = ["bye", "goodbye", "see you later"]
+#naming the flask application
+#__name__ - rurrent module name and allows to determine the root path itself
+tab = Flask(__name__)
 
-    input_text = input_text.lower()
+# reading csv file
+df = p.read_csv('translated.csv')
 
-    if any(greeting in input_text for greeting in greetings):
-        responses = [
-            "Hello! How can I assist you?",
-            "Hi there! What can I help you with?",
-            "Hey! How can I be of service?",
-        ]
-        return random.choice(responses)
+languages = ['hi', 'ta', 'ml']
 
-    elif "how are you" in input_text:
-        responses = [
-            "I'm good, thank you for asking!",
-            "I'm doing well, how about you?",
-            "I'm good, what can i do for you?",
-        ]
-        return random.choice(responses)
-    
-    elif "iam good" in input_text:
-        responses = [
-            "That's great to hear! Do you have any questions?",
-            "That's great, How can I help you?",
-        ]
-        return random.choice(responses)
-    
-    elif "thank you" in input_text:
-        responses = [
-            "You are welcome",
-            "Welcome",
-        ]
-        return random.choice(responses)
+# route decorator for the root URL ('/')
+@tab.route('/')
+#index() will be executed when accessing the root url
+def index():
+    #rendring the template and return the response
+    #index.html will be the template with the html form to be submitted
+    return render_template('index.html')
 
-    elif any(end in input_text for end in endings):
-        responses = [
-            "Goodbye! Have a great day!",
-            "Bye! Take care!",
-            "See you later! Have a wonderful time!",
-        ]
-        return random.choice(responses)
+#/info url to accept post request
+@tab.route('/info', methods=['POST'])
+#getting the information provided in the form
+def info():
+    pagename = request.form['pagename']
+    selected_language = request.form['language']
 
+    #searching for the provided pagename match
+    row = df[df['Page Name'] == pagename]
+
+    if not row.empty:
+        # creating a diationary to store the translated datas
+        translations = {
+            selected_language: {
+                #key-value creation row.iloc[0] means indexing the df 0 mens first row
+                'Translated Page Name': row.iloc[0][f'Translated Page Name ({selected_language})'],
+                'Translated Summary': row.iloc[0][f'Translated Summary ({selected_language})']
+            }
+        }
+
+        #generate text to speech and save it
+        tts_text = f"Translated Page Name: {translations[selected_language]['Translated Page Name']}. Translated Summary: {translations[selected_language]['Translated Summary']}"
+        tts = gTTS(tts_text, lang=selected_language)
+        tts.save('output.mp3')
+
+        # Play the TTS audio
+        os.system('start output.mp3')
+
+        # Open the URL in a web browser
+        url = row.iloc[0]['URL']
+        webbrowser.open(url)
+
+        return render_template('output.html', translations=translations)
     else:
-        return "I'm sorry, I didn't understand that"
+        return "Page not found."
 
-while True:
-    user_input = input("You: ")
-    if user_input.lower() == "exit":
-        print("Goodbye!")
-        break
-    response = simple_cbot(user_input)
-    print(response)
+# run as main program in debug mode
+if __name__ == '__main__':
+    tab.run(debug=True)
