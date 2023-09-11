@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot Result</title>
+</head>
+<body>
+    <h1>Chatbot Result</h1>
+    <ul>
+        <!-- iterating translation dictionary -->
+        {% for lang, translation in translations.items() %}
+        <li>
+            Language: {{ lang }}
+            <ul>
+                <li>Translated Page Name: {{ translation['Translated Page Name'] }}</li>
+                <li>Translated Summary: {{ translation['Translated Summary'] }}</li>
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
